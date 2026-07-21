@@ -6,15 +6,35 @@ A minimal macOS ScreenSaver implementation that recreates the *WarGames* escalat
 2. Escalation to global thermonuclear war scenarios with map/target visuals
 3. Final conclusion that the game is unwinnable and gives up
 
-## Files
+## Source
 
-- `/home/runner/work/wgss/wgss/WarGamesScreenSaver/WarGamesScreenSaverView.swift`
+- `WarGamesScreenSaver/WarGamesScreenSaverView.swift` contains the animation.
+- `WarGamesScreenSaver/wgss/wgss.xcodeproj` builds the installable `wgss.saver` bundle.
 
-## Build/use on macOS
+## Install locally
 
-1. Create a new **Screen Saver Extension** target in Xcode.
-2. Replace the generated `ScreenSaverView` class with `WarGamesScreenSaverView.swift` from this repo.
-3. Build the `.saver` bundle and install it in `~/Library/Screen Savers/`.
-4. Enable it in **System Settings → Screen Saver**.
+Requires macOS 13 or newer and Xcode with the macOS SDK installed.
+
+```sh
+./scripts/install-local.sh
+```
+
+The script builds an ad-hoc-signed release bundle, installs it at
+`~/Library/Screen Savers/wgss.saver`, and verifies its signature. Then select
+**wgss** in **System Settings → Screen Saver**.
+
+To build without installing:
+
+```sh
+xcodebuild \
+  -project WarGamesScreenSaver/wgss/wgss.xcodeproj \
+  -scheme wgss \
+  -configuration Release \
+  -derivedDataPath build \
+  CODE_SIGN_IDENTITY=- \
+  build
+```
+
+The bundle will be written to `build/Build/Products/Release/wgss.saver`.
 
 The saver renders green terminal text on black, animates scenario visuals, and continuously replays the sequence.
