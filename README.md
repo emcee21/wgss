@@ -1,14 +1,14 @@
-# wigs
+# wgss
 
-A minimal macOS ScreenSaver implementation that recreates the *WarGames* escalation sequence:
+A minimal macOS ScreenSaver implementation that recreates the *WarGames* escalation sequence with both text **and visuals**:
 
-1. Simulated tic-tac-toe rounds
-2. Escalation to global thermonuclear war scenarios
+1. Simulated tic-tac-toe rounds with an animated board
+2. Escalation to global thermonuclear war scenarios with map/target visuals
 3. Final conclusion that the game is unwinnable and gives up
 
 ## Files
 
-- `/home/runner/work/wigs/wigs/WarGamesScreenSaver/WarGamesScreenSaverView.swift`
+- `/home/runner/work/wgss/wgss/WarGamesScreenSaver/WarGamesScreenSaverView.swift`
 
 ## Build/use on macOS
 
@@ -17,4 +17,4 @@ A minimal macOS ScreenSaver implementation that recreates the *WarGames* escalat
 3. Build the `.saver` bundle and install it in `~/Library/Screen Savers/`.
 4. Enable it in **System Settings → Screen Saver**.
 
-The saver renders green terminal text on black and continuously replays the scenario.
+The saver renders green terminal text on black, animates scenario visuals, and continuously replays the sequence.
