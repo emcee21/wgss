@@ -10,6 +10,9 @@ final class WarGamesScreenSaverView: ScreenSaverView {
 
     private let terminalColor = NSColor(calibratedRed: 0.39, green: 1.0, blue: 0.39, alpha: 1.0)
     private let backgroundColor = NSColor.black
+    private let terminalGlowColor = NSColor(calibratedRed: 0.62, green: 1.0, blue: 0.62, alpha: 1.0)
+    private let hostileColor = NSColor(calibratedRed: 1.0, green: 0.45, blue: 0.40, alpha: 1.0)
+    private let brightTrailColor = NSColor(calibratedRed: 0.82, green: 0.90, blue: 1.0, alpha: 1.0)
 
     private var phase: Phase = .tictactoe
     private var phaseTick = 0
@@ -117,14 +120,14 @@ final class WarGamesScreenSaverView: ScreenSaverView {
     }
 
     private func drawTicTacToe(in rect: NSRect) {
-        terminalColor.withAlphaComponent(0.85).setStroke()
-
-        let side = min(rect.width, rect.height) * 0.80
+        let side = min(rect.width, rect.height) * 0.76
         let board = NSRect(x: rect.midX - side / 2, y: rect.midY - side / 2, width: side, height: side)
         let cell = side / 3
+        let glow = 0.60 + (sin(CGFloat(phaseTick) * 0.15) + 1) * 0.20
 
         let linePath = NSBezierPath()
-        linePath.lineWidth = isPreview ? 1.5 : 2.5
+        linePath.lineWidth = isPreview ? 1.8 : 2.8
+        terminalGlowColor.withAlphaComponent(glow).setStroke()
         for i in 1...2 {
             let offset = CGFloat(i) * cell
             linePath.move(to: NSPoint(x: board.minX + offset, y: board.minY))
@@ -134,19 +137,36 @@ final class WarGamesScreenSaverView: ScreenSaverView {
         }
         linePath.stroke()
 
-        let moves: [(Int, Character)] = [
-            (0, "X"), (4, "O"), (8, "X"), (2, "O"),
-            (6, "X"), (3, "O"), (5, "X"), (7, "O"), (1, "X")
+        let moveSets: [[Int]] = [
+            [0, 4, 8, 2, 6, 3, 5, 7, 1],
+            [0, 4, 2, 1, 7, 6, 3, 5, 8],
+            [4, 0, 8, 2, 6, 3, 1, 7, 5]
         ]
+        let ticksPerGame = 198
+        let gameIndex = (phaseTick / ticksPerGame) % moveSets.count
+        let tickInGame = phaseTick % ticksPerGame
+        let moves = moveSets[gameIndex]
+        let visibleMoves = min(moves.count, max(0, tickInGame / 18 + 1))
 
-        let visibleMoves = min(moves.count, max(0, phaseTick / 20 + 1))
         for index in 0..<visibleMoves {
-            let (cellIndex, marker) = moves[index]
-            drawMarker(marker, inCell: cellIndex, board: board, cellSize: cell)
+            let marker: Character = index.isMultiple(of: 2) ? "X" : "O"
+            let reveal = CGFloat(max(0, min(18, tickInGame - index * 18))) / 18.0
+            let alpha = 0.30 + max(0.0, reveal) * 0.70
+            drawMarker(marker, inCell: moves[index], board: board, cellSize: cell, alpha: alpha)
         }
+
+        let sweepY = board.minY + board.height * CGFloat((phaseTick % 120)) / 120.0
+        terminalGlowColor.withAlphaComponent(0.18).setFill()
+        NSRect(x: board.minX, y: sweepY, width: board.width, height: isPreview ? 4 : 8).fill()
     }
 
-    private func drawMarker(_ marker: Character, inCell cellIndex: Int, board: NSRect, cellSize: CGFloat) {
+    private func drawMarker(
+        _ marker: Character,
+        inCell cellIndex: Int,
+        board: NSRect,
+        cellSize: CGFloat,
+        alpha: CGFloat = 1.0
+    ) {
         let row = 2 - (cellIndex / 3)
         let col = cellIndex % 3
 
@@ -158,7 +178,7 @@ final class WarGamesScreenSaverView: ScreenSaverView {
 
         let path = NSBezierPath()
         path.lineWidth = isPreview ? 1.5 : 2.2
-        terminalColor.setStroke()
+        terminalGlowColor.withAlphaComponent(alpha).setStroke()
 
         if marker == "X" {
             path.move(to: NSPoint(x: center.x - radius, y: center.y - radius))
@@ -173,59 +193,90 @@ final class WarGamesScreenSaverView: ScreenSaverView {
     }
 
     private func drawThermonuclearMap(in rect: NSRect) {
-        let frame = NSBezierPath(roundedRect: rect.insetBy(dx: 8, dy: 8), xRadius: 8, yRadius: 8)
-        terminalColor.withAlphaComponent(0.6).setStroke()
-        frame.lineWidth = isPreview ? 1.2 : 2
+        let frameRect = rect.insetBy(dx: 8, dy: 8)
+        let frame = NSBezierPath(roundedRect: frameRect, xRadius: 8, yRadius: 8)
+        terminalGlowColor.withAlphaComponent(0.45).setStroke()
+        frame.lineWidth = isPreview ? 1.1 : 2
         frame.stroke()
 
-        let scanAlpha = 0.08 + (sin(CGFloat(phaseTick) * 0.08) + 1) * 0.10
-        terminalColor.withAlphaComponent(scanAlpha).setFill()
-        let scanY = rect.minY + (rect.height * CGFloat((phaseTick % 180)) / 180.0)
-        NSRect(x: rect.minX + 10, y: scanY, width: rect.width - 20, height: isPreview ? 5 : 9).fill()
-
-        let continent1 = NSBezierPath(roundedRect: NSRect(x: rect.minX + rect.width * 0.16,
-                                                          y: rect.minY + rect.height * 0.46,
-                                                          width: rect.width * 0.22,
-                                                          height: rect.height * 0.24), xRadius: 14, yRadius: 14)
-        let continent2 = NSBezierPath(roundedRect: NSRect(x: rect.minX + rect.width * 0.54,
-                                                          y: rect.minY + rect.height * 0.40,
-                                                          width: rect.width * 0.30,
-                                                          height: rect.height * 0.28), xRadius: 16, yRadius: 16)
-        terminalColor.withAlphaComponent(0.18).setFill()
-        continent1.fill()
-        continent2.fill()
-
-        let targets: [(String, CGFloat, CGFloat)] = [
-            ("LAS VEGAS", 0.23, 0.54),
-            ("SEATTLE", 0.19, 0.62),
-            ("CHICAGO", 0.31, 0.58),
-            ("NEW YORK", 0.35, 0.56),
-            ("MOSCOW", 0.62, 0.59),
-            ("LENINGRAD", 0.60, 0.62),
-            ("KYIV", 0.58, 0.55),
-            ("LONDON", 0.52, 0.58)
+        let outlines: [[NSPoint]] = [
+            [NSPoint(x: 0.05, y: 0.60), NSPoint(x: 0.10, y: 0.68), NSPoint(x: 0.18, y: 0.73), NSPoint(x: 0.24, y: 0.71), NSPoint(x: 0.30, y: 0.61), NSPoint(x: 0.29, y: 0.52), NSPoint(x: 0.22, y: 0.48), NSPoint(x: 0.16, y: 0.50), NSPoint(x: 0.10, y: 0.54), NSPoint(x: 0.05, y: 0.60)],
+            [NSPoint(x: 0.30, y: 0.45), NSPoint(x: 0.34, y: 0.41), NSPoint(x: 0.36, y: 0.31), NSPoint(x: 0.33, y: 0.20), NSPoint(x: 0.29, y: 0.25), NSPoint(x: 0.27, y: 0.35), NSPoint(x: 0.30, y: 0.45)],
+            [NSPoint(x: 0.46, y: 0.62), NSPoint(x: 0.53, y: 0.69), NSPoint(x: 0.60, y: 0.71), NSPoint(x: 0.69, y: 0.70), NSPoint(x: 0.76, y: 0.67), NSPoint(x: 0.83, y: 0.63), NSPoint(x: 0.87, y: 0.58), NSPoint(x: 0.84, y: 0.53), NSPoint(x: 0.78, y: 0.50), NSPoint(x: 0.70, y: 0.53), NSPoint(x: 0.62, y: 0.56), NSPoint(x: 0.55, y: 0.57), NSPoint(x: 0.50, y: 0.55), NSPoint(x: 0.46, y: 0.62)],
+            [NSPoint(x: 0.55, y: 0.52), NSPoint(x: 0.59, y: 0.48), NSPoint(x: 0.60, y: 0.40), NSPoint(x: 0.57, y: 0.29), NSPoint(x: 0.52, y: 0.22), NSPoint(x: 0.49, y: 0.30), NSPoint(x: 0.50, y: 0.42), NSPoint(x: 0.55, y: 0.52)],
+            [NSPoint(x: 0.83, y: 0.28), NSPoint(x: 0.88, y: 0.30), NSPoint(x: 0.90, y: 0.26), NSPoint(x: 0.87, y: 0.22), NSPoint(x: 0.82, y: 0.24), NSPoint(x: 0.83, y: 0.28)],
+            [NSPoint(x: 0.32, y: 0.74), NSPoint(x: 0.36, y: 0.81), NSPoint(x: 0.40, y: 0.78), NSPoint(x: 0.38, y: 0.72), NSPoint(x: 0.32, y: 0.74)]
         ]
 
-        let visibleTargets = min(targets.count, max(0, phaseTick / 18 + 1))
-        let pulse = 0.6 + (sin(CGFloat(phaseTick) * 0.2) + 1) * 0.2
+        for shape in outlines {
+            let path = NSBezierPath()
+            path.lineWidth = isPreview ? 1.1 : 1.8
+            for (index, point) in shape.enumerated() {
+                let mapped = mapPoint(point, in: frameRect)
+                if index == 0 { path.move(to: mapped) } else { path.line(to: mapped) }
+            }
+            terminalGlowColor.withAlphaComponent(0.42).setStroke()
+            path.stroke()
+        }
 
-        for index in 0..<visibleTargets {
-            let (_, xFactor, yFactor) = targets[index]
-            let point = NSPoint(x: rect.minX + rect.width * xFactor, y: rect.minY + rect.height * yFactor)
+        let strategicNodes: [(CGFloat, CGFloat, NSColor)] = [
+            (0.21, 0.57, terminalGlowColor),
+            (0.17, 0.64, terminalGlowColor),
+            (0.30, 0.60, terminalGlowColor),
+            (0.34, 0.58, terminalGlowColor),
+            (0.64, 0.62, hostileColor),
+            (0.62, 0.66, hostileColor),
+            (0.58, 0.58, hostileColor),
+            (0.52, 0.60, terminalGlowColor)
+        ]
 
-            terminalColor.withAlphaComponent(pulse).setStroke()
-            let ring = NSBezierPath()
-            ring.lineWidth = isPreview ? 1.2 : 1.8
-            ring.appendArc(withCenter: point, radius: isPreview ? 4 : 7, startAngle: 0, endAngle: 360)
-            ring.stroke()
+        for node in strategicNodes {
+            let point = mapPoint(NSPoint(x: node.0, y: node.1), in: frameRect)
+            let dot = NSBezierPath(ovalIn: NSRect(x: point.x - 2, y: point.y - 2, width: 4, height: 4))
+            node.2.withAlphaComponent(0.85).setFill()
+            dot.fill()
+        }
 
-            let cross = NSBezierPath()
-            cross.lineWidth = 1
-            cross.move(to: NSPoint(x: point.x - 6, y: point.y))
-            cross.line(to: NSPoint(x: point.x + 6, y: point.y))
-            cross.move(to: NSPoint(x: point.x, y: point.y - 6))
-            cross.line(to: NSPoint(x: point.x, y: point.y + 6))
-            cross.stroke()
+        let routes: [(Int, Int, NSColor, CGFloat)] = [
+            (0, 4, brightTrailColor, 0.23), (1, 5, brightTrailColor, 0.28), (2, 4, brightTrailColor, 0.18), (3, 6, brightTrailColor, 0.16),
+            (4, 0, brightTrailColor, 0.22), (5, 1, brightTrailColor, 0.25), (6, 2, brightTrailColor, 0.18), (4, 3, brightTrailColor, 0.14),
+            (4, 7, hostileColor, 0.11), (6, 7, hostileColor, 0.10), (7, 4, brightTrailColor, 0.10)
+        ]
+
+        for (index, route) in routes.enumerated() {
+            let startTick = index * 8
+            let progress = clamp(CGFloat(phaseTick - startTick) / 42.0)
+            guard progress > 0 else { continue }
+
+            let from = mapPoint(NSPoint(x: strategicNodes[route.0].0, y: strategicNodes[route.0].1), in: frameRect)
+            let to = mapPoint(NSPoint(x: strategicNodes[route.1].0, y: strategicNodes[route.1].1), in: frameRect)
+            drawRoute(from: from, to: to, progress: progress, color: route.2, arcHeight: route.3 * rect.height)
+
+            if progress >= 0.95 {
+                let impact = NSBezierPath(ovalIn: NSRect(x: to.x - 5, y: to.y - 5, width: 10, height: 10))
+                let pulse = 0.45 + (sin(CGFloat(phaseTick) * 0.22) + 1) * 0.20
+                route.2.withAlphaComponent(pulse).setStroke()
+                impact.lineWidth = 1.4
+                impact.stroke()
+            }
+        }
+
+        let streaks: [(CGFloat, Int, NSColor)] = [
+            (0.56, 4, brightTrailColor), (0.60, 5, brightTrailColor), (0.63, 6, brightTrailColor),
+            (0.70, 5, brightTrailColor), (0.76, 4, brightTrailColor), (0.84, 3, brightTrailColor)
+        ]
+        for streak in streaks {
+            let travel = CGFloat((phaseTick * streak.1) % Int(rect.height + 120))
+            let top = frameRect.maxY - travel
+            guard top > frameRect.minY - 35 else { continue }
+
+            let x = frameRect.minX + frameRect.width * streak.0
+            let path = NSBezierPath()
+            path.lineWidth = isPreview ? 1.6 : 2.5
+            path.move(to: NSPoint(x: x, y: top))
+            path.line(to: NSPoint(x: x - 8, y: top - (isPreview ? 18 : 34)))
+            streak.2.withAlphaComponent(0.78).setStroke()
+            path.stroke()
         }
     }
 
@@ -250,6 +301,39 @@ final class WarGamesScreenSaverView: ScreenSaverView {
         let size = text.size(withAttributes: attrs)
         let origin = NSPoint(x: rect.midX - size.width / 2, y: rect.minY + rect.height * 0.12)
         text.draw(at: origin, withAttributes: attrs)
+    }
+
+    private func mapPoint(_ point: NSPoint, in rect: NSRect) -> NSPoint {
+        NSPoint(x: rect.minX + rect.width * point.x, y: rect.minY + rect.height * point.y)
+    }
+
+    private func drawRoute(from: NSPoint, to: NSPoint, progress: CGFloat, color: NSColor, arcHeight: CGFloat) {
+        let steps = max(2, Int(50 * progress))
+        let path = NSBezierPath()
+        path.lineWidth = isPreview ? 1.5 : 2.2
+
+        for step in 0...steps {
+            let t = CGFloat(step) / CGFloat(steps)
+            let point = pointOnArc(from: from, to: to, t: t, arcHeight: arcHeight)
+            if step == 0 { path.move(to: point) } else { path.line(to: point) }
+        }
+
+        color.withAlphaComponent(0.80).setStroke()
+        path.stroke()
+    }
+
+    private func pointOnArc(from: NSPoint, to: NSPoint, t: CGFloat, arcHeight: CGFloat) -> NSPoint {
+        let midX = (from.x + to.x) * 0.5
+        let midY = (from.y + to.y) * 0.5 + arcHeight
+        let oneMinusT = 1 - t
+
+        let x = oneMinusT * oneMinusT * from.x + 2 * oneMinusT * t * midX + t * t * to.x
+        let y = oneMinusT * oneMinusT * from.y + 2 * oneMinusT * t * midY + t * t * to.y
+        return NSPoint(x: x, y: y)
+    }
+
+    private func clamp(_ value: CGFloat) -> CGFloat {
+        min(1, max(0, value))
     }
 
     private func updatePhase(forCompletedLine line: String) {
